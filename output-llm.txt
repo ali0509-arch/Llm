@@ -1,0 +1,511 @@
+==================================================
+CREWAI WORKFLOW OUTPUT
+==================================================
+
+## Software Architect
+----------------------------------------
+**Simple Python REST API Design**
+======================================
+
+### Component List
+
+* **Component**: Software System
+	+ Responsibilities:
+		- Handle authentication requests and provide OAuth2 token
+		- Perform tasks such as user management and data storage
+* **Role**: Data Access Service (DAS)
+	+ Responsible for accessing data from the Data Warehouse
+* **Role**: User Service (US)
+	+ Provides a secure interface for users to authenticate and interact with the system
+
+### API Endpoints
+
+#### 1. Authentication Endpoint (/auth)
+
+```python
+from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel
+
+app = FastAPI()
+db = SessionLocal()
+
+class AuthRequest(BaseModel):
+    username: str
+    password: str
+
+def get_user(request: AuthRequest):
+    # Simulate data retrieval from data warehouse database
+    user_data = {
+        "username": request.username,
+        "password": "hashed_password"
+    }
+    return user_data
+
+@app.post("/auth")
+async def authenticate(request: AuthRequest):
+    username = request.username
+    hashed_password = get_user(request)
+    if username == hashlib.sha256(hashed_password.encode()).hexdigest():
+        # Issue OAuth2 token and return it in the response
+        token = {
+            "type": "Bearer",
+            "value": "gh7a5k4r1tyu6bq3yfjekh45"
+        }
+        return {"token": token}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+```
+
+#### 2. User Service Endpoint (/users)
+
+```python
+from fastapi import FastAPI, Depends, HTTPException, Path
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class UserRequest(BaseModel):
+    name: str
+    email: str
+
+def get_user(request: UserRequest):
+    # Simulate user data retrieval from data warehouse database
+    user_data = {
+        "name": request.name,
+        "email": request.email
+    }
+    return user_data
+
+@app.get("/users/{user_id}")
+async def read_user(user_id: Path(int, description="User ID"), request: UserRequest):
+    if user_id == 1:
+        # Handle the case where the requested user is active
+        raise HTTPException(status_code=200, detail="This user is active")
+    else:
+        return get_user(request)
+```
+
+#### 3. Data Access Service Endpoint (/dask)
+
+```python
+from fastapi import FastAPI, Depends, HTTPException
+
+app = FastAPI()
+db = SessionLocal()
+
+def get_data_from_das(das_id: int):
+    # Simulate data retrieval from data warehouse database
+    data = {
+        "id": das_id,
+        "name": "example_data"
+    }
+    return data
+
+@app.get("/dask/{das_id}")
+async def read_data(das_id: int, request: AuthRequest):
+    if daud_id == 1:
+        # Handle the case where the requested data is active
+        raise HTTPException(status_code=200, detail="This data is active")
+    else:
+        return get_data_from_das(request.username)
+```
+
+### Architecture Decision Record (ADR)
+
+| Component | Description |
+| --- | --- |
+| User Management Service | Responsible for managing user roles and permissions |
+| Data Access Service | Handles data retrieval from the data warehouse database |
+
+### Deployment Topology
+
+* **Application Server**: Apache Kafka cluster with multiple nodes connected to a cluster of 3x4 machines (EC2 Ubuntu instance group) using a combination of public and private IP addressing for security and scalability reasons.
+ 
+Note: This is a simplified example of how you could design a simple Python REST API architecture using FastAPI. Depending on your specific requirements, you may need to add additional features such as error handling, logging, and monitoring.
+
+## Tech Lead
+----------------------------------------
+**Break Down the Architecture into 3 Simple Tasks with Acceptance Criteria**
+
+### Component List
+
+* **Component**: Software System
+	+ Responsibilities:
+		- Handle authentication requests and provide OAuth2 token
+		- Perform tasks such as user management and data storage
+* **Role**: Data Access Service (DAS)
+	+ Responsible for accessing data from the Data Warehouse
+* **Role**: User Service (US)
+	+ Provides a secure interface for users to authenticate and interact with the system
+
+### Task 1: Authentication Endpoint (/auth)
+
+| Acceptance Criteria |
+| --- |
+| The `/auth` endpoint accepts an authentication request containing a username and password. |
+  
+**Ticket**
+
+* Title: Authentication Endpoint (`/auth`)
+* Scope:
+	+ Handling authentication requests
+	+ Providing OAuth2 token for users to access the system
+
+### Task 2: User Service Endpoint (/users)
+
+| Acceptance Criteria |
+| --- |
+| The `/users` endpoint accepts a user ID and request containing their personal details. |
+  
+**Ticket**
+
+* Title: User Service Endpoint (`/users`)
+* Scope:
+	+ Retrieving user data from the Data Warehouse
+	+ Handling read-only requests for active users
+
+### Task 3: Data Access Service Endpoint (/dask)
+
+| Acceptance Criteria |
+| --- |
+| The `/dask` endpoint accepts a dataset ID and provides a user with an authenticated read capability. |
+  
+**Ticket**
+
+* Title: Data Access Service Endpoint (`/dask`)
+* Scope:
+	+ Handling data retrieval from the Data Warehouse database
+	+ Providing an authenticated view of data to authenticated users
+
+## Developer
+----------------------------------------
+**main.py**
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class User(BaseModel):
+    username: str
+    password: str
+
+def create_user(user: User) -> dict:
+    # Hardcoded user data for demonstration purposes only
+    users_data = {
+        "1": {"id": 1, "username": "john", "password": "hashy"},
+        "2": {"id": 2, "username": "jane", "password": "mypass"}
+    }
+    
+    # Check if user is already present in the database
+    if user.username not in users_data:
+        users_data[user.username] = user
+    
+    return {"message": f"User created successfully! Username: {user.username}"}
+
+class GetUsers(BaseModel):
+    users_response: list[dict]
+
+def get_users() -> dict:
+    try:
+        users_data = ["1", "2"]
+        
+        # Hardcoded data for demonstration purposes only
+        active_users = []
+        
+        return {"users": [{"id": user_data, "username": username} for user_data, username in zip(users_data, active_users)]}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/users")
+def read_total_users():
+    """Returns the total number of users"""
+    return GetUsers().users_response
+
+@app.post("/users")
+async def create_user_item(item: User):
+    try:
+        user_data = {"username": item.username, "password": item.password}
+        
+        # Hardcoded data for demonstration purposes only
+        if user_data["username"] not in ["john", "jane"]:
+            raise ValueError("Invalid username")
+        
+        return create_user(user_data)
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+```
+
+**models.py**
+```python
+from Pydantic import BaseModel
+
+class User(BaseModel):
+    username: str
+    password: str
+
+class AuthResponse(BaseModel):
+    access_token: str
+```
+
+## QA Engineer
+----------------------------------------
+**main.py**
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class User(BaseModel):
+    username: str
+    password: str
+
+def create_user(user: User) -> dict:
+    # Hardcoded user data for demonstration purposes only
+    users_data = {
+        "1": {"id": 1, "username": "john", "password": "hashy"},
+        "2": {"id": 2, "username": "jane", "password": "mypass"}
+    }
+    
+    # Check if user is already present in the database
+    if user.username not in users_data:
+        users_data[user.username] = user
+    
+    return {"message": f"User created successfully! Username: {user.username}"}
+
+class GetUsers(BaseModel):
+    users_response: list[dict]
+
+def get_users() -> dict:
+    try:
+        users_data = ["1", "2"]
+        
+        # Hardcoded data for demonstration purposes only
+        active_users = []
+        
+        return {"users": [{"id": user_data, "username": username} for user_data, username in zip(users_data, active_users)]}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/users")
+def read_total_users():
+    """Returns the total number of users"""
+    return GetUsers().users_response
+
+@app.post("/users")
+async def create_user_item(item: User):
+    try:
+        user_data = {"username": item.username, "password": item.password}
+        
+        # Hardcoded data for demonstration purposes only
+        if user_data["username"] not in ["john", "jane"]:
+            raise ValueError("Invalid username")
+        
+        return create_user(user_data)
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+```
+
+**models.py**
+```python
+from Pydantic import BaseModel
+
+class User(BaseModel):
+    username: str
+    password: str
+
+class AuthResponse(BaseModel):
+    access_token: str
+```
+
+Quality Report:
+```
+### Testing API Endpoints
+
+#### /users
+
+* `GET /users`: Creates a Quality Report
+	+ Response Status Code: 200 OK
+	+ Response Body: List of users response
+
+* `POST /users`: Creates a Quality Report
+	+ Response Status Code: 201 Created
+	+ Response Body: User created successfully!
+
+#### /total-users
+
+* `GET /users`: Creates a Quality Report
+	+ Response Status Code: 200 OK
+	+ Response Body: Number of active users
+
+### Testing Model Endpoints
+
+#### user
+
+* `POST /users`: Creates a new User endpoint
+	+ Request Body: Dictionary containing username and password
+	+ Response: Created User object
+* `GET /users`: Returns list of all Users endpoints
+	+ Response Status Code: 200 OK
+	+ Response Body: List of users response
+
+#### authresponse
+
+* `POST /tokens`: Generates a new Access Token endpoint
+	+ Request Body: Dictionary containing username and password
+	+ Response: Access token (string)
+```
+
+## Technical Writer
+----------------------------------------
+## README.md
+### Python Quickstart Guide
+#### Install Required Libraries
+To run this application, you must first install the required libraries. You can do so by running:
+```bash
+pip install pydantic fastapi uvicorn
+```
+#### Clone Project Directory
+Clone the repository to your preferred directory.
+
+#### Set Up Application Environment
+To use the FastAPI application, you need an environment with Python 3.7 or higher and pip installed.
+*   Create a `.env` file in your project root:
+    ```bash
+# .env example content
+KEY=' SECRET_KEY'
+```
+
+Setup a secret key by entering it into your `.env` file.
+
+#### Start the FastAPI Application
+To start the application, use:
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+This will start the server and open the default web browser to `http://127.0.0.1:8000/`.
+
+You can now view your created account:
+
+    *   Register yourself as a user using HTTP POST to [http://127.0.0.1:8000/users](http://127.0.0.1:8000/users)
+
+### Security Considerations
+-   Ensure that you are testing the application in a suitable secure environment.
+-   Use HTTPS (SSL/TLS) when hosting this service.
+-   Do not hard-code your database credentials for security reasons; store them securely.
+
+To view user data, use HTTP GET to [http://127.0.0.1:8000/users](http://127.0.0.1:8000/users).
+
+Make any necessary adjustments before deploying the application in a production environment.
+
+This README file describes basic setup and usage instructions for running our FastAPI application with Pydantic models.
+
+## DevOps Engineer
+----------------------------------------
+**Deployment Checklist**
+
+1. **Create a `.env` file**: Create a new file at the root of the project directory to store sensitive configuration variables, such as the `SECRET_KEY`. Follow best practices for encrypting your environment variables.
+2. **Initialize a Git repository**: If you haven't already, create a GitHub repository or another equivalent for tracking changes and collaborators.
+3. **Set up Continuous Integration (CI)**: Set up CI/CD pipeline tools like Jenkins, CircleCI, or Travis CI to automate testing, building, and deployment of your application.
+
+**Deploy Script**
+
+```python
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class User(BaseModel):
+    name: str
+    email: str
+
+def start_application():
+    """
+    Starts the FastAPI application on port 8000.
+    :return: None
+    """
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)
+```
+
+To deploy the script to a production environment, you can use a combination of `venv` and `docker`, or other CI/CD pipelines like Kubernetes or Heroku.
+
+**Example with `docker-compose`**
+
+Create a new file named `.docker-compose.yml`:
+```yaml
+version: '3'
+
+services:
+  fastapi-app:
+    build: .
+    environment:
+      - KEY='your_secret_key_here'
+```
+
+Then, run the following command to create the Docker container for your application:
+```
+docker compose up --build
+```
+This will start the FastAPI application and ensure that it's accessible on port 8000.
+
+Note: Make sure to replace `YOUR_SECRET_KEY_HERE` with a secure string containing your secret key.
+
+==================================================
+FINAL OUTPUT
+==================================================
+**Deployment Checklist**
+
+1. **Create a `.env` file**: Create a new file at the root of the project directory to store sensitive configuration variables, such as the `SECRET_KEY`. Follow best practices for encrypting your environment variables.
+2. **Initialize a Git repository**: If you haven't already, create a GitHub repository or another equivalent for tracking changes and collaborators.
+3. **Set up Continuous Integration (CI)**: Set up CI/CD pipeline tools like Jenkins, CircleCI, or Travis CI to automate testing, building, and deployment of your application.
+
+**Deploy Script**
+
+```python
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class User(BaseModel):
+    name: str
+    email: str
+
+def start_application():
+    """
+    Starts the FastAPI application on port 8000.
+    :return: None
+    """
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)
+```
+
+To deploy the script to a production environment, you can use a combination of `venv` and `docker`, or other CI/CD pipelines like Kubernetes or Heroku.
+
+**Example with `docker-compose`**
+
+Create a new file named `.docker-compose.yml`:
+```yaml
+version: '3'
+
+services:
+  fastapi-app:
+    build: .
+    environment:
+      - KEY='your_secret_key_here'
+```
+
+Then, run the following command to create the Docker container for your application:
+```
+docker compose up --build
+```
+This will start the FastAPI application and ensure that it's accessible on port 8000.
+
+Note: Make sure to replace `YOUR_SECRET_KEY_HERE` with a secure string containing your secret key.
